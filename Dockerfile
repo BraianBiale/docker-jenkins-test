@@ -6,7 +6,8 @@ RUN apk add --no-cache curl bash git tini
 
 # Define environment variables
 ENV JENKINS_HOME=/var/jenkins_home
-ENV JENKINS_VERSION=2.424  # Choose the desired version of Jenkins
+# Choose the desired version of Jenkins
+ENV JENKINS_VERSION=2.424  
 ENV JENKINS_URL=http://updates.jenkins-ci.org/download/war/${JENKINS_VERSION}/jenkins.war
 
 # Create Jenkins home directory
