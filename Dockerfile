@@ -1,13 +1,13 @@
-# Use a lightweight openjdk-alpine image as the base
+# Use a lightweight base image with OpenJDK (Alpine-based)
 FROM openjdk:8-jdk-alpine
 
-# Install minimal dependencies required for Jenkins
-RUN apk add --no-cache curl bash git tini
+# Install curl and tini (for process handling)
+RUN apk add --no-cache curl tini
 
-# Define environment variables
+# Environment variables
 ENV JENKINS_HOME=/var/jenkins_home
-# Choose the desired version of Jenkins
 ENV JENKINS_VERSION=2.424  
+# Use an appropriate Jenkins version
 ENV JENKINS_URL=http://updates.jenkins-ci.org/download/war/${JENKINS_VERSION}/jenkins.war
 
 # Create Jenkins home directory
@@ -15,17 +15,18 @@ RUN mkdir -p $JENKINS_HOME && \
     addgroup -S jenkins && adduser -S -G jenkins jenkins && \
     chown -R jenkins:jenkins $JENKINS_HOME
 
-# Download the Jenkins WAR file
+# Download Jenkins WAR
 RUN curl -fsSL ${JENKINS_URL} -o /usr/share/jenkins/jenkins.war
 
-# Expose Jenkins ports (8080 for the web interface, 50000 for agents)
+# Expose Jenkins ports
 EXPOSE 8080 50000
 
-# Use Tini to handle signals (for proper container termination)
-ENTRYPOINT ["/sbin/tini", "--"]
-
-# Run Jenkins
-CMD ["java", "-jar", "/usr/share/jenkins/jenkins.war"]
-
-# Set user to Jenkins
+# Set Jenkins to run as user "jenkins"
 USER jenkins
+
+# Limit JVM heap size to reduce memory consumption
+# Using -Xmx128m and -Xms64m to ensure minimal memory usage
+CMD ["java", "-Xms64m", "-Xmx128m", "-jar", "/usr/share/jenkins/jenkins.war"]
+
+# Use tini as the entrypoint for proper signal handling
+ENTRYPOINT ["/sbin/tini", "--"]
