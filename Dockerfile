@@ -1,28 +1,30 @@
-# Start with the official Jenkins LTS base image
-FROM jenkins/jenkins:lts
+# Use a lightweight openjdk-alpine image as the base
+FROM openjdk:8-jdk-alpine
 
-# Switch to the root user to install dependencies if needed
-USER root
+# Install minimal dependencies required for Jenkins
+RUN apk add --no-cache curl bash git tini
 
-# Install any necessary dependencies (optional)
-# RUN apt-get update && apt-get install -y some-package
+# Define environment variables
+ENV JENKINS_HOME=/var/jenkins_home
+ENV JENKINS_VERSION=2.424  # Choose the desired version of Jenkins
+ENV JENKINS_URL=http://updates.jenkins-ci.org/download/war/${JENKINS_VERSION}/jenkins.war
 
-# If you want to pre-install plugins, you can use the install-plugins.sh script
-# RUN jenkins-plugin-cli --plugins "workflow-aggregator git"
+# Create Jenkins home directory
+RUN mkdir -p $JENKINS_HOME && \
+    addgroup -S jenkins && adduser -S -G jenkins jenkins && \
+    chown -R jenkins:jenkins $JENKINS_HOME
 
-# Optionally, copy your custom Jenkins configuration files
-# COPY ./config.xml /var/jenkins_home/config.xml
+# Download the Jenkins WAR file
+RUN curl -fsSL ${JENKINS_URL} -o /usr/share/jenkins/jenkins.war
 
-# Set permissions on the Jenkins home directory (ensure jenkins owns its files)
-RUN chown -R jenkins:jenkins /var/jenkins_home
+# Expose Jenkins ports (8080 for the web interface, 50000 for agents)
+EXPOSE 8080 50000
 
-# Expose the default Jenkins port
-EXPOSE 8080
+# Use Tini to handle signals (for proper container termination)
+ENTRYPOINT ["/sbin/tini", "--"]
 
-# Set the Jenkins user back for running Jenkins
+# Run Jenkins
+CMD ["java", "-jar", "/usr/share/jenkins/jenkins.war"]
+
+# Set user to Jenkins
 USER jenkins
-
-# Jenkins runs by default with this command
-# ENTRYPOINT ["/sbin/tini", "--", "/usr/local/bin/jenkins.sh"]
-
-# No need to specify CMD as it is already provided by the base image
