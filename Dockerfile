@@ -1,32 +1,28 @@
-# Use a lightweight base image with OpenJDK (Alpine-based)
-FROM openjdk:8-jdk-alpine
+# Start with the official Jenkins LTS base image
+FROM jenkins/jenkins:lts
 
-# Install curl and tini (for process handling)
-RUN apk add --no-cache curl tini
+# Switch to the root user to install dependencies if needed
+USER root
 
-# Environment variables
-ENV JENKINS_HOME=/var/jenkins_home
-ENV JENKINS_VERSION=2.424  
-# Use an appropriate Jenkins version
-ENV JENKINS_URL=http://updates.jenkins-ci.org/download/war/${JENKINS_VERSION}/jenkins.war
+# Install any necessary dependencies (optional)
+# RUN apt-get update && apt-get install -y some-package
 
-# Create Jenkins home directory
-RUN mkdir -p $JENKINS_HOME && \
-    addgroup -S jenkins && adduser -S -G jenkins jenkins && \
-    chown -R jenkins:jenkins $JENKINS_HOME
+# If you want to pre-install plugins, you can use the install-plugins.sh script
+# RUN jenkins-plugin-cli --plugins "workflow-aggregator git"
 
-# Download Jenkins WAR
-RUN curl -fsSL ${JENKINS_URL} -o /usr/share/jenkins/jenkins.war
+# Optionally, copy your custom Jenkins configuration files
+# COPY ./config.xml /var/jenkins_home/config.xml
 
-# Expose Jenkins ports
-EXPOSE 8080 50000
+# Set permissions on the Jenkins home directory (ensure jenkins owns its files)
+RUN chown -R jenkins:jenkins /var/jenkins_home
 
-# Set Jenkins to run as user "jenkins"
+# Expose the default Jenkins port
+EXPOSE 8080
+
+# Set the Jenkins user back for running Jenkins
 USER jenkins
 
-# Limit JVM heap size to reduce memory consumption
-# Using -Xmx128m and -Xms64m to ensure minimal memory usage
-CMD ["java", "-Xms64m", "-Xmx128m", "-jar", "/usr/share/jenkins/jenkins.war"]
+# Jenkins runs by default with this command
+# ENTRYPOINT ["/sbin/tini", "--", "/usr/local/bin/jenkins.sh"]
 
-# Use tini as the entrypoint for proper signal handling
-ENTRYPOINT ["/sbin/tini", "--"]
+# No need to specify CMD as it is already provided by the base image
